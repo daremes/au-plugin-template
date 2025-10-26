@@ -1,0 +1,1 @@
+# au-plugin-template
