@@ -4,8 +4,11 @@ Cosmic Scratches by Feline Astronauts is a JUCE-based AU/VST3 granular delay and
 
 ## Features
 
-- **Granular delay core** with adjustable grain size, density, pitch shift, stereo spread, delay time, and feedback.
-- **Integrated reverb** featuring width, damping, room size, and freeze control for evolving textures.
+- **Granular warp core** with Nebula Size, Meteor Swarm, Orbit Shift, and Comet Spread controls for immediate texture shaping.
+- **Advanced grain lab** adds Wormhole Scatter offsets, Gravity Envelope sculpting, and Quantum Drift pitch jitter for evolving motion.
+- **Tempo-aware delay** that can free-run in milliseconds or snap to BPM-synchronised cosmic divisions (triplets included).
+- **Meteor Burn drive stage** slots before the reverb, with tone and blend controls for optional pre-space saturation.
+- **Nebula reverb suite** offering Horizon, Stellar Damping, Cosmic Width, Space Freeze, and independent Stardust/Reverb blends.
 - **Space & glitch themed UI** including animated star field, glitch scans, and custom rotary controls.
 - **Parameter automation ready** via `AudioProcessorValueTreeState` and preset serialization.
 - **Cross-format output** (AU, VST3, Standalone) through JUCE's CMake build system.
@@ -52,8 +55,8 @@ CMakeLists.txt            JUCE CMake entry point
 
 ## Next Steps
 
-- Integrate parameter smoothing/modulation.
-- Extend the grain engine with reverse grains or random pitch jitter controls.
-- Add preset browser and randomizer for fast experimentation.
+- Add modulation sources/LFOs for the new cosmic parameters.
+- Experiment with additional grain envelope shapes or spectral shapers.
+- Introduce a preset browser and snapshot morphing for live performance.
 
 Contributions, forks, and wild sonic experiments are welcome!
