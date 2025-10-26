@@ -16,11 +16,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Allow the user to point to a JUCE checkout via JUCE_DIR or fetch it automatically.
 if (APPLE)
     # Force ScreenCaptureKit usage on macOS 15 SDKs where the legacy
-    # CoreGraphics screen-grab APIs have been removed. This must be set before
-    # JUCE's helper targets (like juceaide) are configured so they pick up the
-    # replacement implementation.
+    # CoreGraphics screen-grab APIs have been removed. JUCE exposes both a
+    # cache-variable toggle and a preprocessor define for this behaviour, and
+    # juceaide needs the same definitions to build successfully.
+    set(JUCE_USE_SCREEN_CAPTURE_KIT ON CACHE BOOL
+        "Use ScreenCaptureKit instead of deprecated CoreGraphics APIs" FORCE)
     set(JUCE_MAC_SCREEN_CAPTURE_USE_SCREEN_CAPTURE_KIT ON CACHE BOOL
         "Use ScreenCaptureKit instead of deprecated CoreGraphics APIs" FORCE)
+    add_compile_definitions(JUCE_USE_SCREEN_CAPTURE_KIT=1)
 endif()
 
 if (DEFINED JUCE_DIR AND NOT JUCE_DIR STREQUAL "")
