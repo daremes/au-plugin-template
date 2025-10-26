@@ -8,3 +8,5 @@ cmake-build-*/
 *.VC.db
 *.VC.opendb
 JuceLibraryCode/
+JUCE/
+.vscode/
