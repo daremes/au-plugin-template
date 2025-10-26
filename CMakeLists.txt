@@ -26,6 +26,7 @@ endif()
 
 juce_add_plugin(CosmicGrainDelay
     COMPANY_NAME "Experimental Audio"
+    BUNDLE_ID "com.ExperimentalAudio.CosmicGrainDelay"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
@@ -53,8 +54,6 @@ target_compile_definitions(CosmicGrainDelay
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
         JUCE_VST3_CAN_REPLACE_VST2=0)
-
-juce_add_binary_data(CosmicGrainDelayData SOURCES)
 
 set_target_properties(CosmicGrainDelay PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
