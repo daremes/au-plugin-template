@@ -36,7 +36,7 @@ cmake ..
 cmake --build . --config Release
 ```
 
-> **Note for macOS 15 SDK users:** The project pins the deployment target to macOS 13.0 and forces JUCE to use ScreenCaptureKit when none is supplied (by setting both JUCE cache options and the `JUCE_USE_SCREEN_CAPTURE_KIT` define). This keeps JUCE's helper tools (including `juceaide`) building against the latest SDK where CoreGraphics screen capture APIs have been removed. If you need a different target, override it at configure time via `-DCMAKE_OSX_DEPLOYMENT_TARGET=14.0` (or another supported version).
+> **Note for macOS 15 SDK users:** The project pins the deployment target to macOS 13.0 and forces JUCE to use ScreenCaptureKit when none is supplied. The ScreenCaptureKit switches are pushed onto JUCE's cache variables **and** the juceaide/module targets directly so the helper tooling also avoids the removed CoreGraphics APIs. If you need a different target, override it at configure time via `-DCMAKE_OSX_DEPLOYMENT_TARGET=14.0` (or another supported version).
 
 The resulting plug-in binaries can be found under `build/CosmicGrainDelay_artefacts`. Copy the appropriate format (e.g. `.vst3`, `.component`, or standalone app) to your plug-in folder.
 

@@ -44,6 +44,24 @@ else()
     FetchContent_MakeAvailable(JUCE)
 endif()
 
+if (APPLE)
+    # juceaide is built from the JUCE tree and does not automatically inherit
+    # compile definitions declared before the JUCE subdirectory is added.
+    # Explicitly push the ScreenCaptureKit toggles onto juceaide and the
+    # relevant JUCE module targets so they avoid the removed CoreGraphics APIs
+    # when compiling with the macOS 15 SDK.
+    foreach(screen_capture_target IN ITEMS
+        juceaide
+        juce::juce_gui_basics
+        juce::juce_graphics)
+        if (TARGET ${screen_capture_target})
+            target_compile_definitions(${screen_capture_target} PRIVATE
+                JUCE_USE_SCREEN_CAPTURE_KIT=1
+                JUCE_MAC_SCREEN_CAPTURE_USE_SCREEN_CAPTURE_KIT=1)
+        endif()
+    endforeach()
+endif()
+
 juce_add_plugin(CosmicGrainDelay
     COMPANY_NAME "Experimental Audio"
     BUNDLE_ID "com.ExperimentalAudio.CosmicGrainDelay"
