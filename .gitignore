@@ -1,0 +1,10 @@
+# Build artifacts
+build/
+cmake-build-*/
+.idea/
+.DS_Store
+*.user
+*.swp
+*.VC.db
+*.VC.opendb
+JuceLibraryCode/
