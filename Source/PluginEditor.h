@@ -3,6 +3,8 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_extra/juce_gui_extra.h>
 
+#include "GrainEngine.h"
+
 #include <memory>
 #include <utility>
 #include <vector>
@@ -19,9 +21,9 @@ public:
     void drawLinearSlider(juce::Graphics&, int x, int y, int width, int height, float sliderPos,
                           float minSliderPos, float maxSliderPos, const juce::Slider::SliderStyle, juce::Slider&) override;
     juce::Label* createSliderTextBox(juce::Slider& slider) override;
+    void drawToggleButton(juce::Graphics&, juce::ToggleButton&, bool, bool) override;
 
 private:
-    juce::ColourGradient knobGradient;
 };
 
 class CosmicGrainDelayAudioProcessorEditor : public juce::AudioProcessorEditor,
@@ -50,30 +52,51 @@ private:
     juce::Slider densitySlider;
     juce::Slider pitchSlider;
     juce::Slider spreadSlider;
+    juce::Slider grainScatterSlider;
+    juce::Slider grainEnvelopeSlider;
+    juce::Slider grainJitterSlider;
     juce::Slider delaySlider;
+    juce::Slider delayDivisionSlider;
     juce::Slider feedbackSlider;
+    juce::Slider distortionDriveSlider;
+    juce::Slider distortionToneSlider;
+    juce::Slider distortionMixSlider;
     juce::Slider grainWetSlider;
     juce::Slider reverbMixSlider;
     juce::Slider reverbSizeSlider;
     juce::Slider reverbDampingSlider;
     juce::Slider reverbWidthSlider;
-    juce::ToggleButton freezeButton { "Freeze" };
+    juce::ToggleButton delaySyncButton { "SYNC TO BPM" };
+    juce::ToggleButton distortionToggle { "IGNITE METEOR BURN" };
+    juce::ToggleButton freezeButton { "SPACE FREEZE" };
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> grainSizeAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> densityAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> pitchAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> spreadAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> grainScatterAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> grainEnvelopeAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> grainJitterAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> delayAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> delayDivisionAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> feedbackAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> distortionDriveAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> distortionToneAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> distortionMixAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> grainWetAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> reverbMixAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> reverbSizeAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> reverbDampingAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> reverbWidthAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> delaySyncAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> distortionAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> freezeAttachment;
 
     std::vector<std::unique_ptr<juce::Label>> sliderLabels;
     std::vector<std::pair<juce::Slider*, juce::Label*>> sliderLabelPairs;
+    std::vector<std::unique_ptr<juce::Label>> toggleLabels;
+    std::vector<std::pair<juce::ToggleButton*, juce::Label*>> toggleLabelPairs;
+    GrainEngine::VisualSnapshot latestSnapshot;
 
     struct Star
     {
@@ -85,6 +108,7 @@ private:
 
     std::vector<Star> stars;
     juce::Colour glitchColour { juce::Colours::white.withAlpha(0.08f) };
+    juce::Rectangle<int> grainVisualiserBounds {};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CosmicGrainDelayAudioProcessorEditor)
 };

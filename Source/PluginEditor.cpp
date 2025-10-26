@@ -8,13 +8,46 @@ namespace
 constexpr float degToRad(float degrees) { return degrees * juce::MathConstants<float>::pi / 180.0f; }
 }
 
+namespace
+{
+juce::ColourGradient makeGradientForID(const juce::String& id, const juce::Point<float>& centre, float radius)
+{
+    auto primary = juce::Colour(0xff3ec5ff);
+    auto highlight = juce::Colour(0xff8e7cff);
+
+    if (id == "grain")
+    {
+        primary = juce::Colour(0xff40d1ff);
+        highlight = juce::Colour(0xff7ef4c9);
+    }
+    else if (id == "delay")
+    {
+        primary = juce::Colour(0xff5f8bff);
+        highlight = juce::Colour(0xffa189ff);
+    }
+    else if (id == "distortion")
+    {
+        primary = juce::Colour(0xffff7f5e);
+        highlight = juce::Colour(0xffffbf65);
+    }
+    else if (id == "reverb")
+    {
+        primary = juce::Colour(0xff6cb9ff);
+        highlight = juce::Colour(0xff9fd2ff);
+    }
+
+    juce::ColourGradient gradient(primary, centre.x, centre.y - radius * 0.6f,
+                                  highlight, centre.x, centre.y + radius * 0.6f, true);
+    gradient.addColour(0.5, juce::Colour(0xfff8e1ff).withAlpha(0.9f));
+    return gradient;
+}
+}
+
 CosmicLookAndFeel::CosmicLookAndFeel()
 {
-    knobGradient = juce::ColourGradient(juce::Colour(0xff8e7cff), juce::Point<float>(0.0f, 0.0f),
-                                        juce::Colour(0xff3ec5ff), juce::Point<float>(0.0f, 40.0f), true);
-    knobGradient.addColour(0.5, juce::Colour(0xfff8e1ff));
     setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
     setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+    setColour(juce::ToggleButton::textColourId, juce::Colours::white);
 }
 
 void CosmicLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height, float sliderPos,
@@ -37,7 +70,8 @@ void CosmicLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wi
 
     juce::Path knob;
     knob.addEllipse(centre.x - radius * 0.7f, centre.y - radius * 0.7f, radius * 1.4f, radius * 1.4f);
-    g.setGradientFill(knobGradient);
+    auto gradient = makeGradientForID(slider.getComponentID(), centre, radius);
+    g.setGradientFill(gradient);
     g.fillPath(knob);
 
     g.setColour(juce::Colours::black.withAlpha(0.3f));
@@ -91,13 +125,48 @@ juce::Label* CosmicLookAndFeel::createSliderTextBox(juce::Slider& slider)
     return l;
 }
 
+void CosmicLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton& button, bool isHighlighted, bool isDown)
+{
+    auto bounds = button.getLocalBounds().toFloat();
+    auto trackHeight = juce::jmin(bounds.getHeight(), 20.0f);
+    auto trackWidth = juce::jmax(trackHeight * 1.8f, bounds.getWidth());
+    auto track = juce::Rectangle<float>(bounds.getCentreX() - trackWidth * 0.5f,
+                                        bounds.getCentreY() - trackHeight * 0.5f,
+                                        trackWidth,
+                                        trackHeight);
+
+    auto baseColour = button.getToggleState() ? juce::Colour(0xff40d1ff) : juce::Colours::white.withAlpha(0.18f);
+    if (isHighlighted)
+        baseColour = baseColour.brighter(0.25f);
+    if (isDown)
+        baseColour = baseColour.darker(0.1f);
+
+    g.setColour(baseColour.withAlpha(0.35f));
+    g.fillRoundedRectangle(track, trackHeight * 0.5f);
+    g.setColour(baseColour.withAlpha(0.65f));
+    g.drawRoundedRectangle(track, trackHeight * 0.5f, 1.4f);
+
+    auto thumbDiameter = trackHeight * 0.7f;
+    auto thumbPadding = (trackHeight - thumbDiameter) * 0.5f;
+    auto thumbX = button.getToggleState()
+        ? (track.getRight() - thumbDiameter - thumbPadding)
+        : (track.getX() + thumbPadding);
+    auto thumbBounds = juce::Rectangle<float>(thumbX, track.getY() + thumbPadding, thumbDiameter, thumbDiameter);
+
+    auto gradient = makeGradientForID(button.getComponentID(), thumbBounds.getCentre(), thumbDiameter * 0.5f);
+    g.setGradientFill(gradient);
+    g.fillEllipse(thumbBounds);
+    g.setColour(juce::Colours::black.withAlpha(0.25f));
+    g.drawEllipse(thumbBounds, 1.1f);
+}
+
 CosmicGrainDelayAudioProcessorEditor::CosmicGrainDelayAudioProcessorEditor(CosmicGrainDelayAudioProcessor& p,
                                                                            juce::AudioProcessorValueTreeState& vts)
     : AudioProcessorEditor(&p), audioProcessor(p), parameters(vts)
 {
     initialiseControls();
     startTimerHz(30);
-    setSize(720, 520);
+    setSize(1160, 840);
     generateStarField();
 }
 
@@ -111,13 +180,16 @@ void CosmicGrainDelayAudioProcessorEditor::initialiseControls()
 {
     sliderLabels.clear();
     sliderLabelPairs.clear();
+    toggleLabels.clear();
+    toggleLabelPairs.clear();
 
-    auto configureSlider = [this](juce::Slider& slider, const juce::String& paramID)
+    auto configureSlider = [this](juce::Slider& slider, const juce::String& paramID, const juce::String& colourID)
     {
         slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
         slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 70, 20);
         slider.setLookAndFeel(&lookAndFeel);
         slider.setName(parameters.getParameter(paramID)->getName(32));
+        slider.setComponentID(colourID);
         addAndMakeVisible(slider);
 
         auto label = std::make_unique<juce::Label>();
@@ -130,35 +202,148 @@ void CosmicGrainDelayAudioProcessorEditor::initialiseControls()
         sliderLabels.push_back(std::move(label));
     };
 
-    configureSlider(grainSizeSlider, "grainSize");
-    configureSlider(densitySlider, "density");
-    configureSlider(pitchSlider, "pitch");
-    configureSlider(spreadSlider, "spread");
-    configureSlider(delaySlider, "delayTime");
-    configureSlider(feedbackSlider, "feedback");
-    configureSlider(grainWetSlider, "grainWet");
-    configureSlider(reverbMixSlider, "reverbMix");
-    configureSlider(reverbSizeSlider, "reverbSize");
-    configureSlider(reverbDampingSlider, "reverbDamping");
-    configureSlider(reverbWidthSlider, "reverbWidth");
+    configureSlider(grainSizeSlider, "grainSize", "grain");
+    configureSlider(densitySlider, "density", "grain");
+    configureSlider(pitchSlider, "pitch", "grain");
+    configureSlider(spreadSlider, "spread", "grain");
+    configureSlider(grainScatterSlider, "grainScatter", "grain");
+    configureSlider(grainEnvelopeSlider, "grainEnvelopeShape", "grain");
+    configureSlider(grainJitterSlider, "grainPitchJitter", "grain");
+    configureSlider(delaySlider, "delayTime", "delay");
+    configureSlider(delayDivisionSlider, "delayDivision", "delay");
+    configureSlider(feedbackSlider, "feedback", "delay");
+    configureSlider(distortionDriveSlider, "distortionDrive", "distortion");
+    configureSlider(distortionToneSlider, "distortionTone", "distortion");
+    configureSlider(distortionMixSlider, "distortionMix", "distortion");
+    configureSlider(grainWetSlider, "grainWet", "grain");
+    configureSlider(reverbMixSlider, "reverbMix", "reverb");
+    configureSlider(reverbSizeSlider, "reverbSize", "reverb");
+    configureSlider(reverbDampingSlider, "reverbDamping", "reverb");
+    configureSlider(reverbWidthSlider, "reverbWidth", "reverb");
 
+    delayDivisionSlider.setNumDecimalPlacesToDisplay(0);
+    delayDivisionSlider.textFromValueFunction = [](double value)
+    {
+        auto index = juce::jlimit<int>(0, static_cast<int>(CosmicGrainDelayAudioProcessor::delayDivisionLabels.size() - 1),
+            static_cast<int>(std::round(value)));
+        return juce::String(CosmicGrainDelayAudioProcessor::delayDivisionLabels[static_cast<size_t>(index)]);
+    };
+    delayDivisionSlider.valueFromTextFunction = [](const juce::String& text)
+    {
+        for (size_t i = 0; i < CosmicGrainDelayAudioProcessor::delayDivisionLabels.size(); ++i)
+            if (text.equalsIgnoreCase(CosmicGrainDelayAudioProcessor::delayDivisionLabels[i]))
+                return static_cast<double>(i);
+        return 0.0;
+    };
+
+    auto setToggleText = [this](juce::ToggleButton& button, const juce::String& paramID, const juce::String& colourID)
+    {
+        if (auto* param = parameters.getParameter(paramID))
+        {
+            auto label = std::make_unique<juce::Label>();
+            label->setText(param->getName(32).toUpperCase(), juce::dontSendNotification);
+            label->setJustificationType(juce::Justification::centred);
+            label->setFont(juce::Font(12.0f, juce::Font::bold));
+            label->setColour(juce::Label::textColourId, juce::Colours::white.withAlpha(0.85f));
+            addAndMakeVisible(label.get());
+            toggleLabelPairs.emplace_back(&button, label.get());
+            toggleLabels.push_back(std::move(label));
+        }
+        button.setButtonText({});
+        button.setComponentID(colourID);
+        button.setLookAndFeel(&lookAndFeel);
+        addAndMakeVisible(button);
+    };
+
+    setToggleText(delaySyncButton, "delaySync", "delay");
+    setToggleText(distortionToggle, "distortionEnabled", "distortion");
     freezeButton.setLookAndFeel(&lookAndFeel);
-    freezeButton.setButtonText("Freeze Space");
-    freezeButton.setColour(juce::ToggleButton::textColourId, juce::Colours::white);
-    addAndMakeVisible(freezeButton);
+    setToggleText(freezeButton, "reverbFreeze", "reverb");
 
     grainSizeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(parameters, "grainSize", grainSizeSlider);
     densityAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(parameters, "density", densitySlider);
     pitchAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(parameters, "pitch", pitchSlider);
     spreadAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(parameters, "spread", spreadSlider);
+    grainScatterAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(parameters, "grainScatter", grainScatterSlider);
+    grainEnvelopeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(parameters, "grainEnvelopeShape", grainEnvelopeSlider);
+    grainJitterAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(parameters, "grainPitchJitter", grainJitterSlider);
     delayAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(parameters, "delayTime", delaySlider);
+    delayDivisionAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(parameters, "delayDivision", delayDivisionSlider);
     feedbackAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(parameters, "feedback", feedbackSlider);
+    distortionDriveAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(parameters, "distortionDrive", distortionDriveSlider);
+    distortionToneAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(parameters, "distortionTone", distortionToneSlider);
+    distortionMixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(parameters, "distortionMix", distortionMixSlider);
     grainWetAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(parameters, "grainWet", grainWetSlider);
     reverbMixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(parameters, "reverbMix", reverbMixSlider);
     reverbSizeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(parameters, "reverbSize", reverbSizeSlider);
     reverbDampingAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(parameters, "reverbDamping", reverbDampingSlider);
     reverbWidthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(parameters, "reverbWidth", reverbWidthSlider);
+    delaySyncAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(parameters, "delaySync", delaySyncButton);
+    distortionAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(parameters, "distortionEnabled", distortionToggle);
     freezeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(parameters, "reverbFreeze", freezeButton);
+
+    delaySyncButton.onStateChange = [this]
+    {
+        delayDivisionSlider.setEnabled(delaySyncButton.getToggleState());
+    };
+
+    distortionToggle.onStateChange = [this]
+    {
+        const auto enabled = distortionToggle.getToggleState();
+        distortionDriveSlider.setEnabled(enabled);
+        distortionToneSlider.setEnabled(enabled);
+        distortionMixSlider.setEnabled(enabled);
+    };
+
+    auto findLabel = [this](juce::Slider& slider) -> juce::Label*
+    {
+        for (auto& pair : sliderLabelPairs)
+            if (pair.first == &slider)
+                return pair.second;
+        return nullptr;
+    };
+
+    auto updateDelayMode = [this, findLabel]()
+    {
+        const bool sync = delaySyncButton.getToggleState();
+        delayDivisionSlider.setVisible(sync);
+        delayDivisionSlider.setEnabled(sync);
+        if (auto* label = findLabel(delayDivisionSlider))
+            label->setVisible(sync);
+
+        delaySlider.setVisible(!sync);
+        delaySlider.setEnabled(!sync);
+        if (auto* label = findLabel(delaySlider))
+            label->setVisible(!sync);
+    };
+
+    auto setDistortionEnabled = [this, findLabel](bool enabled)
+    {
+        auto apply = [&](juce::Slider& slider)
+        {
+            slider.setEnabled(enabled);
+            slider.setAlpha(enabled ? 1.0f : 0.35f);
+            if (auto* label = findLabel(slider))
+                label->setAlpha(enabled ? 1.0f : 0.35f);
+        };
+
+        apply(distortionDriveSlider);
+        apply(distortionToneSlider);
+        apply(distortionMixSlider);
+    };
+
+    delaySyncButton.onStateChange = [updateDelayMode]() mutable
+    {
+        updateDelayMode();
+    };
+
+    distortionToggle.onStateChange = [setDistortionEnabled, this]() mutable
+    {
+        setDistortionEnabled(distortionToggle.getToggleState());
+    };
+
+    updateDelayMode();
+    setDistortionEnabled(distortionToggle.getToggleState());
 }
 
 void CosmicGrainDelayAudioProcessorEditor::generateStarField()
@@ -213,6 +398,72 @@ void CosmicGrainDelayAudioProcessorEditor::paint(juce::Graphics& g)
     g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 14.0f, juce::Font::italic));
     g.drawText("claws // nebulae // texture", bounds.removeFromTop(30.0f).translated(0, 10), juce::Justification::centredTop, false);
 
+    if (!grainVisualiserBounds.isEmpty())
+    {
+        auto visualiser = grainVisualiserBounds.toFloat();
+        g.setColour(juce::Colours::white.withAlpha(0.08f));
+        g.fillRoundedRectangle(visualiser, 18.0f);
+        g.setColour(juce::Colours::white.withAlpha(0.3f));
+        g.drawRoundedRectangle(visualiser, 18.0f, 1.6f);
+
+        auto dashedColour = juce::Colours::white.withAlpha(0.15f);
+        g.setColour(dashedColour);
+        for (int i = 0; i < 6; ++i)
+        {
+            auto orbitPhase = static_cast<double>(i) + juce::Time::getMillisecondCounterHiRes() * 0.001;
+            auto wave = static_cast<float>(0.5 + 0.5 * std::sin(orbitPhase));
+            g.setColour(dashedColour.withAlpha(wave * 0.35f));
+            auto orbitRadius = visualiser.getWidth() * (0.18f + 0.12f * static_cast<float>(i));
+            auto orbitBounds = juce::Rectangle<float>(orbitRadius, orbitRadius);
+            orbitBounds = orbitBounds.withCentre(visualiser.getCentre());
+            g.drawEllipse(orbitBounds, 0.8f);
+        }
+
+        auto centre = visualiser.getCentre();
+        auto maxRadius = juce::jmin(visualiser.getWidth(), visualiser.getHeight()) * 0.45f;
+        auto innerRadius = juce::jmin(visualiser.getWidth(), visualiser.getHeight()) * 0.18f;
+        auto now = juce::Time::getMillisecondCounterHiRes() * 0.001;
+
+        if (latestSnapshot.grainCount == 0)
+        {
+            g.setColour(juce::Colours::white.withAlpha(0.6f));
+            g.setFont(juce::Font(14.0f, juce::Font::italic));
+            g.drawText("waiting for grains", grainVisualiserBounds, juce::Justification::centred);
+        }
+        else
+        {
+            auto tailColour = juce::Colours::white.withAlpha(0.2f);
+            for (size_t i = 0; i < latestSnapshot.grainCount; ++i)
+            {
+                const auto& grain = latestSnapshot.grains[i];
+
+                auto progress = juce::jlimit(0.0f, 1.0f, grain.age);
+                auto pitchHue = juce::jlimit(0.0f, 1.0f, 0.55f + grain.pitchSemitone * 0.015f);
+                auto size = juce::jlimit(6.0f, 20.0f, 8.0f + grain.durationSeconds * 60.0f);
+                auto energy = juce::jlimit(0.2f, 1.0f, 0.3f + grain.envelope);
+
+                auto rotation = static_cast<float>(now * 0.35) + grain.pan * juce::MathConstants<float>::twoPi;
+                auto radius = innerRadius + (maxRadius - innerRadius) * progress;
+                auto position = centre + juce::Point<float>(std::cos(rotation), std::sin(rotation)) * radius;
+
+                auto particleColour = juce::Colour::fromHSV(pitchHue, 0.6f, 0.9f, energy);
+                g.setColour(tailColour.withAlpha(energy * 0.6f));
+                g.drawLine({ centre, position }, 1.0f);
+
+                g.setColour(particleColour);
+                g.fillEllipse({ position.x - size * 0.5f, position.y - size * 0.5f, size, size });
+            }
+
+            g.setColour(juce::Colours::white.withAlpha(0.55f));
+            g.setFont(juce::Font(12.0f, juce::Font::plain));
+            juce::String telemetry;
+            telemetry << juce::String(latestSnapshot.activeGrains) << " grains   |   "
+                      << juce::String(juce::roundToInt(latestSnapshot.spawnRatePerSecond)) << " grains/sec   |   "
+                      << juce::String(latestSnapshot.delayTimeMs, 1) << " ms delay";
+            g.drawFittedText(telemetry, grainVisualiserBounds.reduced(12, 8), juce::Justification::topLeft, 1);
+        }
+    }
+
     g.setColour(juce::Colours::white.withAlpha(0.15f));
     g.drawRoundedRectangle(getLocalBounds().reduced(12).toFloat(), 12.0f, 1.5f);
 }
@@ -225,51 +476,137 @@ void CosmicGrainDelayAudioProcessorEditor::resized()
 
 void CosmicGrainDelayAudioProcessorEditor::layoutControls()
 {
-    auto area = getLocalBounds().reduced(20);
-    area.removeFromTop(80);
+    auto bounds = getLocalBounds().reduced(48);
+    bounds.removeFromTop(140);
 
-    auto row = area.removeFromTop(140);
-    auto cellWidth = row.getWidth() / 4;
-    auto placeKnob = [this](juce::Rectangle<int> space, juce::Slider& slider)
+    auto positionSliderLabel = [this](juce::Slider& slider, const juce::Rectangle<int>& controlBounds)
     {
-        auto knobArea = space.reduced(20);
-        slider.setBounds(knobArea);
         for (auto& pair : sliderLabelPairs)
         {
             if (pair.first == &slider)
             {
-                auto labelBounds = knobArea.translated(0, -24);
-                labelBounds.setHeight(20);
+                auto labelBounds = controlBounds.withHeight(20);
+                labelBounds.setY(controlBounds.getY() - 24);
                 pair.second->setBounds(labelBounds);
                 break;
             }
         }
     };
 
-    placeKnob(row.removeFromLeft(cellWidth), grainSizeSlider);
-    placeKnob(row.removeFromLeft(cellWidth), densitySlider);
-    placeKnob(row.removeFromLeft(cellWidth), pitchSlider);
-    placeKnob(row.removeFromLeft(cellWidth), spreadSlider);
+    auto positionToggleLabel = [this](juce::ToggleButton& button, const juce::Rectangle<int>& labelBounds)
+    {
+        for (auto& pair : toggleLabelPairs)
+        {
+            if (pair.first == &button)
+            {
+                pair.second->setBounds(labelBounds);
+                break;
+            }
+        }
+    };
 
-    row = area.removeFromTop(140);
-    cellWidth = row.getWidth() / 4;
-    placeKnob(row.removeFromLeft(cellWidth), delaySlider);
-    placeKnob(row.removeFromLeft(cellWidth), feedbackSlider);
-    placeKnob(row.removeFromLeft(cellWidth), grainWetSlider);
-    placeKnob(row.removeFromLeft(cellWidth), reverbMixSlider);
+    auto layoutSlider = [&](juce::Slider& slider, const juce::Rectangle<int>& area)
+    {
+        auto knobBounds = area;
+        auto size = juce::jmin(knobBounds.getWidth(), knobBounds.getHeight());
+        size = juce::jmax(size - 12, 96);
+        knobBounds = juce::Rectangle<int>(0, 0, size, size);
+        knobBounds.setCentre(area.getCentre());
+        slider.setBounds(knobBounds);
+        positionSliderLabel(slider, knobBounds);
+    };
 
-    row = area.removeFromTop(140);
-    cellWidth = row.getWidth() / 4;
-    placeKnob(row.removeFromLeft(cellWidth), reverbSizeSlider);
-    placeKnob(row.removeFromLeft(cellWidth), reverbDampingSlider);
-    placeKnob(row.removeFromLeft(cellWidth), reverbWidthSlider);
+    const int knobRowHeight = 150;
 
-    auto buttonArea = row.removeFromLeft(cellWidth).reduced(20);
-    freezeButton.setBounds(buttonArea.removeFromBottom(40));
+    auto layoutSliderGrid = [&](const std::vector<juce::Slider*>& sliders, juce::Rectangle<int> area, int columns)
+    {
+        if (sliders.empty())
+            return;
+
+        auto working = area.reduced(4);
+        const int total = static_cast<int>(sliders.size());
+        int index = 0;
+
+        while (index < total && working.getHeight() > 0)
+        {
+            auto rowArea = working.removeFromTop(knobRowHeight);
+            const int cellWidth = rowArea.getWidth() / columns;
+
+            for (int col = 0; col < columns && index < total; ++col)
+            {
+                auto cell = juce::Rectangle<int>(rowArea.getX() + col * cellWidth,
+                                                 rowArea.getY(),
+                                                 cellWidth,
+                                                 rowArea.getHeight()).reduced(12);
+                layoutSlider(*sliders[static_cast<size_t>(index)], cell);
+                ++index;
+            }
+        }
+    };
+
+    auto layoutToggle = [&](juce::ToggleButton& button, juce::Rectangle<int> area)
+    {
+        const int toggleWidth = juce::jmin(area.getWidth(), 72);
+        const int toggleHeight = 26;
+        auto toggleBounds = juce::Rectangle<int>(toggleWidth, toggleHeight).withCentre(area.getCentre());
+        button.setBounds(toggleBounds);
+        auto labelArea = toggleBounds.expanded(0, 12);
+        labelArea.setHeight(20);
+        labelArea.setY(toggleBounds.getY() - 26);
+        positionToggleLabel(button, labelArea);
+    };
+
+    auto workingArea = bounds.reduced(24);
+    const int visualiserHeight = juce::jlimit(160, 240, workingArea.getHeight() / 3);
+    grainVisualiserBounds = workingArea.removeFromBottom(visualiserHeight).reduced(20);
+
+    auto controlArea = workingArea.reduced(12);
+    const int columnSpacing = 32;
+
+    auto grainColumn = controlArea.removeFromLeft(static_cast<int>(controlArea.getWidth() * 0.38f));
+    controlArea.removeFromLeft(columnSpacing);
+    auto timeColumn = controlArea.removeFromLeft(static_cast<int>(controlArea.getWidth() * 0.30f));
+    controlArea.removeFromLeft(columnSpacing);
+    auto fxColumn = controlArea;
+
+    grainColumn = grainColumn.reduced(8);
+    timeColumn = timeColumn.reduced(8);
+    fxColumn = fxColumn.reduced(8);
+
+    layoutSliderGrid({ &grainSizeSlider, &densitySlider, &pitchSlider, &spreadSlider,
+                       &grainScatterSlider, &grainEnvelopeSlider, &grainJitterSlider, &grainWetSlider },
+                     grainColumn, 2);
+
+    auto timeArea = timeColumn;
+    auto syncArea = timeArea.removeFromTop(40);
+    layoutToggle(delaySyncButton, syncArea);
+    timeArea.removeFromTop(12);
+
+    auto delayArea = timeArea.removeFromTop(knobRowHeight);
+    layoutSlider(delaySlider, delayArea);
+    layoutSlider(delayDivisionSlider, delayArea);
+
+    timeArea.removeFromTop(12);
+    auto feedbackArea = timeArea.removeFromTop(knobRowHeight);
+    layoutSlider(feedbackSlider, feedbackArea);
+
+    auto fxArea = fxColumn;
+    auto distortionArea = fxArea.removeFromTop(knobRowHeight + 24);
+    auto distortionToggleArea = distortionArea.removeFromTop(38);
+    layoutToggle(distortionToggle, distortionToggleArea);
+    distortionArea.removeFromTop(8);
+    layoutSliderGrid({ &distortionDriveSlider, &distortionToneSlider, &distortionMixSlider }, distortionArea, 3);
+
+    fxArea.removeFromTop(20);
+    auto freezeArea = fxArea.removeFromBottom(48);
+    layoutToggle(freezeButton, freezeArea);
+    fxArea.removeFromBottom(8);
+    layoutSliderGrid({ &reverbMixSlider, &reverbSizeSlider, &reverbDampingSlider, &reverbWidthSlider }, fxArea, 2);
 }
 
 void CosmicGrainDelayAudioProcessorEditor::timerCallback()
 {
+    latestSnapshot = audioProcessor.getGrainVisualSnapshot();
     for (auto& star : stars)
     {
         star.phase += star.twinkleSpeed * 0.02f;
