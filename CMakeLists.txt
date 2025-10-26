@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 3.15)
 
 project(CosmicGrainDelay VERSION 0.1.0)
 
+if (APPLE AND NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+    # macOS 15 removes several CoreGraphics capture APIs that JUCE still relies on.
+    # Setting an explicit deployment target ensures those symbols remain available
+    # when building with the macOS 15 SDK while still allowing users to override it.
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING "Minimum macOS version" FORCE)
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 

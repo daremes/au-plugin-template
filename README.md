@@ -36,6 +36,8 @@ cmake ..
 cmake --build . --config Release
 ```
 
+> **Note for macOS 15 SDK users:** The project pins the deployment target to macOS 13.0 when none is supplied. This keeps JUCE's legacy screen capture APIs available when compiling with the latest SDK. If you need a different target, override it at configure time via `-DCMAKE_OSX_DEPLOYMENT_TARGET=14.0` (or another supported version).
+
 The resulting plug-in binaries can be found under `build/CosmicGrainDelay_artefacts`. Copy the appropriate format (e.g. `.vst3`, `.component`, or standalone app) to your plug-in folder.
 
 ## Project Structure
