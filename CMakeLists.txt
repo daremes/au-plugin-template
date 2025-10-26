@@ -5,16 +5,24 @@ project(CosmicGrainDelay VERSION 0.1.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Allow the user to point to a JUCE checkout via JUCE_DIR
-if (NOT DEFINED JUCE_DIR)
-    set(JUCE_DIR "${CMAKE_SOURCE_DIR}/JUCE" CACHE PATH "Path to JUCE" FORCE)
-endif()
+# Allow the user to point to a JUCE checkout via JUCE_DIR or fetch it automatically.
+if (DEFINED JUCE_DIR AND NOT JUCE_DIR STREQUAL "")
+    # Resolve the path relative to the binary directory to match typical cmake usage
+    get_filename_component(JUCE_DIR "${JUCE_DIR}" REALPATH BASE_DIR "${CMAKE_BINARY_DIR}")
 
-if (NOT EXISTS "${JUCE_DIR}/CMakeLists.txt")
-    message(FATAL_ERROR "Could not find JUCE. Please set JUCE_DIR to a valid JUCE checkout.")
-endif()
+    if (NOT EXISTS "${JUCE_DIR}/CMakeLists.txt")
+        message(FATAL_ERROR "JUCE_DIR ('${JUCE_DIR}') does not contain a JUCE checkout.\n"
+            "Please provide a path that contains JUCE's CMakeLists.txt or omit JUCE_DIR to download JUCE automatically.")
+    endif()
 
-add_subdirectory(${JUCE_DIR} JUCE)
+    add_subdirectory("${JUCE_DIR}" JUCE)
+else()
+    include(FetchContent)
+    FetchContent_Declare(JUCE
+        GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
+        GIT_TAG 7.0.9)
+    FetchContent_MakeAvailable(JUCE)
+endif()
 
 juce_add_plugin(CosmicGrainDelay
     COMPANY_NAME "Experimental Audio"

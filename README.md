@@ -14,17 +14,17 @@ Cosmic Grain Delay is a JUCE-based AU/VST3 granular delay and reverb effect tail
 
 ### Prerequisites
 
-- A local checkout of [JUCE](https://github.com/juce-framework/JUCE) (6.1 or later recommended).
 - CMake 3.15+
 - A C++17 compatible compiler (Xcode, Visual Studio, or clang/gcc toolchain).
 - For AU builds, macOS with Xcode command-line tools installed.
 
-### Configure JUCE path
+### Configure JUCE dependency
 
-By default the project expects JUCE to live inside a `JUCE/` directory next to the project root. You can override this by specifying `-DJUCE_DIR=/path/to/JUCE` when invoking CMake.
+By default the CMake project will download JUCE (tag `7.0.9`) automatically via `FetchContent`. If you already have a local JUCE checkout, pass its path through `-DJUCE_DIR=/path/to/JUCE` when invoking CMake (relative paths are resolved from the build directory).
 
 ```
 git clone https://github.com/juce-framework/JUCE.git
+cmake -DJUCE_DIR=/absolute/or/relative/path/to/JUCE ..
 ```
 
 ### Build steps
@@ -32,7 +32,7 @@ git clone https://github.com/juce-framework/JUCE.git
 ```
 mkdir build
 cd build
-cmake -DJUCE_DIR=../JUCE ..
+cmake ..
 cmake --build . --config Release
 ```
 
