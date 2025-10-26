@@ -43,11 +43,14 @@ void CosmicLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wi
     g.setColour(juce::Colours::black.withAlpha(0.3f));
     g.drawEllipse(knob.getBounds(), 1.2f);
 
-    auto pointerLength = radius * 0.75f;
-    auto pointerThickness = 3.0f;
+    auto pointerLength = radius * 0.82f;
+    auto pointerThickness = juce::jmax(2.0f, radius * 0.08f);
     juce::Path pointer;
-    pointer.addRectangle(-pointerThickness * 0.5f, -radius * 0.05f, pointerThickness, pointerLength);
-    g.setColour(juce::Colours::white);
+    pointer.startNewSubPath(0.0f, -pointerLength);
+    pointer.lineTo(pointerThickness * 0.5f, 0.0f);
+    pointer.lineTo(-pointerThickness * 0.5f, 0.0f);
+    pointer.closeSubPath();
+    g.setColour(juce::Colours::white.withAlpha(0.9f));
     g.fillPath(pointer, juce::AffineTransform::rotation(toAngle).translated(centre.x, centre.y));
 
     auto glitchColour = juce::Colour(0xfffefefe).withAlpha(0.12f);
@@ -201,10 +204,14 @@ void CosmicGrainDelayAudioProcessorEditor::paint(juce::Graphics& g)
     }
 
     g.setColour(juce::Colours::white.withAlpha(0.85f));
-    g.setFont(juce::Font("Futura", 28.0f, juce::Font::bold));
-    g.drawText("COSMIC GRAIN DELAY", bounds.removeFromTop(50.0f), juce::Justification::centredTop, true);
+    auto brandingArea = bounds.removeFromTop(70.0f);
+    auto brandLine = brandingArea.removeFromTop(24.0f);
+    g.setFont(juce::Font("Futura", 18.0f, juce::Font::bold));
+    g.drawText("FELINE ASTRONAUTS", brandLine, juce::Justification::centredTop, true);
+    g.setFont(juce::Font("Futura", 30.0f, juce::Font::bold));
+    g.drawText("COSMIC SCRATCHES", brandingArea, juce::Justification::centredTop, true);
     g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 14.0f, juce::Font::italic));
-    g.drawText("space // glitch // time", bounds.removeFromTop(30.0f).translated(0, 10), juce::Justification::centredTop, false);
+    g.drawText("claws // nebulae // texture", bounds.removeFromTop(30.0f).translated(0, 10), juce::Justification::centredTop, false);
 
     g.setColour(juce::Colours::white.withAlpha(0.15f));
     g.drawRoundedRectangle(getLocalBounds().reduced(12).toFloat(), 12.0f, 1.5f);

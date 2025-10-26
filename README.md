@@ -1,6 +1,6 @@
-# Cosmic Grain Delay
+# Cosmic Scratches
 
-Cosmic Grain Delay is a JUCE-based AU/VST3 granular delay and reverb effect tailored for experimental music workflows. It combines a flexible grain cloud engine, feedback delay line, and lush reverb with a space- and glitch-inspired interface for immediate inspiration.
+Cosmic Scratches by Feline Astronauts is a JUCE-based AU/VST3 granular delay and reverb effect tailored for experimental music workflows. It combines a flexible grain cloud engine, feedback delay line, and lush reverb with a space- and glitch-inspired interface for immediate inspiration.
 
 ## Features
 

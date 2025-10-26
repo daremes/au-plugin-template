@@ -29,7 +29,7 @@ void GrainEngine::prepare(const juce::dsp::ProcessSpec& spec)
     delayBuffer.clear();
     writePosition = 0;
     spawnAccumulator = 0.0f;
-    densitySamples = sampleRate / juce::jmax(0.01f, density);
+    densitySamples = static_cast<float>(sampleRate) / juce::jmax(0.01f, density);
 }
 
 void GrainEngine::reset()
@@ -47,7 +47,7 @@ void GrainEngine::setGrainSize(float milliseconds)
 void GrainEngine::setDensity(float grainsPerSecond)
 {
     density = juce::jlimit(0.5f, 48.0f, grainsPerSecond);
-    densitySamples = sampleRate / juce::jmax(0.01f, density);
+    densitySamples = static_cast<float>(sampleRate) / juce::jmax(0.01f, density);
 }
 
 void GrainEngine::setPitch(float semitones)
@@ -83,9 +83,9 @@ void GrainEngine::processBlock(juce::AudioBuffer<float>& buffer)
     const auto numSamples = buffer.getNumSamples();
     const auto numChannels = buffer.getNumChannels();
     const auto delayBufferSize = delayBuffer.getNumSamples();
-    const auto delayOffset = static_cast<size_t>(millisecondsToSamples(delayMs, sampleRate));
-    auto** channelWritePointers = buffer.getArrayOfWritePointers();
-    auto** delayWritePointers = delayBuffer.getArrayOfWritePointers();
+    const auto delayOffset = static_cast<int>(millisecondsToSamples(delayMs, sampleRate));
+    auto channelWritePointers = buffer.getArrayOfWritePointers();
+    auto delayWritePointers = delayBuffer.getArrayOfWritePointers();
     const auto totalChannels = juce::jmin(numChannels, delayBuffer.getNumChannels());
 
     for (int sample = 0; sample < numSamples; ++sample)
@@ -114,8 +114,8 @@ void GrainEngine::processBlock(juce::AudioBuffer<float>& buffer)
                 continue;
 
             auto* readData = delayBuffer.getReadPointer(grain.channel);
-            auto readPos = (writePosition + delayBufferSize - delayOffset) % delayBufferSize;
-            readPos = (readPos + grain.position) % delayBufferSize;
+            auto readPos = (static_cast<int>(writePosition) + delayBufferSize - delayOffset) % delayBufferSize;
+            readPos = (readPos + static_cast<int>(grain.position)) % delayBufferSize;
 
             auto indexFloat = std::fmod(static_cast<float>(readPos) + grain.fractionalPosition,
                                         static_cast<float>(delayBufferSize));
@@ -160,7 +160,7 @@ void GrainEngine::spawnGrain(int channel)
     grain.position = 0;
     auto lengthMs = juce::jmax(10.0f, grainSizeMs + (randomDist(rng) - 0.5f) * spreadMs);
     grain.length = static_cast<size_t>(millisecondsToSamples(lengthMs, sampleRate));
-    grain.length = juce::jmax<size_t>(32, grain.length);
+    grain.length = std::max<std::size_t>(static_cast<std::size_t>(32), grain.length);
     grain.rate = semitoneToRate(pitch + (randomDist(rng) - 0.5f) * 3.0f);
     grain.envelope = 0.0f;
     grain.envelopeIncrement = 1.0f / static_cast<float>(grain.length);

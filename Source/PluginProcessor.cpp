@@ -74,8 +74,8 @@ void CosmicGrainDelayAudioProcessor::processBlock(juce::AudioBuffer<float>& buff
     juce::dsp::ProcessContextReplacing<float> reverbContext(reverbBlock);
     reverb.process(reverbContext);
 
-    const auto mix = *reverbMix;
-    const auto grainWet = *wet;
+    const auto mix = reverbMix->load();
+    const auto grainWet = wet->load();
     for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
     {
         auto* dry = dryBuffer.getReadPointer(juce::jmin(channel, dryBuffer.getNumChannels() - 1));
@@ -92,7 +92,7 @@ void CosmicGrainDelayAudioProcessor::processBlock(juce::AudioBuffer<float>& buff
 
 void CosmicGrainDelayAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    if (auto state = parameters.copyState())
+    if (auto state = parameters.copyState(); state.isValid())
         if (auto xml = state.createXml())
             copyXmlToBinary(*xml, destData);
 }
@@ -127,4 +127,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout CosmicGrainDelayAudioProcess
 juce::AudioProcessorEditor* CosmicGrainDelayAudioProcessor::createEditor()
 {
     return new CosmicGrainDelayAudioProcessorEditor(*this, parameters);
+}
+
+juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
+{
+    return new CosmicGrainDelayAudioProcessor();
 }

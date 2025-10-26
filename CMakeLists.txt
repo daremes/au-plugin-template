@@ -13,6 +13,10 @@ project(CosmicGrainDelay VERSION 0.1.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(COSMIC_COPY_PLUGIN_AFTER_BUILD
+    "Copy built plug-ins into the system plug-in folders after each build"
+    OFF)
+
 # Allow the user to point to a JUCE checkout via JUCE_DIR or fetch it automatically.
 if (APPLE)
     # Force ScreenCaptureKit usage on macOS 15 SDKs where the legacy
@@ -55,26 +59,42 @@ if (APPLE)
         juce::juce_gui_basics
         juce::juce_graphics)
         if (TARGET ${screen_capture_target})
-            target_compile_definitions(${screen_capture_target} PRIVATE
-                JUCE_USE_SCREEN_CAPTURE_KIT=1
-                JUCE_MAC_SCREEN_CAPTURE_USE_SCREEN_CAPTURE_KIT=1)
+            # Resolve aliases/imported targets before applying the definitions.
+            set(actual_target "${screen_capture_target}")
+            get_target_property(alias_target "${screen_capture_target}" ALIASED_TARGET)
+            if (alias_target)
+                set(actual_target "${alias_target}")
+            endif()
+            get_target_property(is_imported "${actual_target}" IMPORTED)
+            if (NOT is_imported)
+                get_target_property(target_type "${actual_target}" TYPE)
+                if (target_type STREQUAL "INTERFACE_LIBRARY")
+                    target_compile_definitions("${actual_target}" INTERFACE
+                        JUCE_USE_SCREEN_CAPTURE_KIT=1
+                        JUCE_MAC_SCREEN_CAPTURE_USE_SCREEN_CAPTURE_KIT=1)
+                else()
+                    target_compile_definitions("${actual_target}" PRIVATE
+                        JUCE_USE_SCREEN_CAPTURE_KIT=1
+                        JUCE_MAC_SCREEN_CAPTURE_USE_SCREEN_CAPTURE_KIT=1)
+                endif()
+            endif()
         endif()
     endforeach()
 endif()
 
 juce_add_plugin(CosmicGrainDelay
-    COMPANY_NAME "Experimental Audio"
-    BUNDLE_ID "com.ExperimentalAudio.CosmicGrainDelay"
+    COMPANY_NAME "Feline Astronauts"
+    BUNDLE_ID "com.FelineAstronauts.CosmicScratches"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
-    COPY_PLUGIN_AFTER_BUILD TRUE
+    COPY_PLUGIN_AFTER_BUILD ${COSMIC_COPY_PLUGIN_AFTER_BUILD}
     VST3_CATEGORIES "Fx"
     AU_MAIN_TYPE "kAudioUnitType_Effect"
     FORMATS AU VST3 Standalone
-    PRODUCT_NAME "Cosmic Grain Delay")
+    PRODUCT_NAME "Cosmic Scratches")
 
 juce_generate_juce_header(CosmicGrainDelay)
 
@@ -95,8 +115,6 @@ target_compile_definitions(CosmicGrainDelay
 
 set_target_properties(CosmicGrainDelay PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
-
-juce_enable_vst3_category(CosmicGrainDelay "Fx")
 
 target_link_libraries(CosmicGrainDelay
     PRIVATE
